@@ -17,7 +17,7 @@ func main() {
 		go fetch(url, ch) // Start a goroutine
 	}
 	for range os.Args[1:] {
-		fmt.Println(<-ch) // Receive from channel ch
+		fmt.Println(<-ch) // Receive from channel ch. Using same channel for all receive operations ensures that we print full string from one sender before proceeding with the next sender
 	}
 	fmt.Printf("%.2fs elapsed\n", time.Since(start).Seconds())
 }
