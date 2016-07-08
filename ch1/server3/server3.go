@@ -24,7 +24,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintf(w, "Host = %q\n", r.Host)
 	fmt.Fprintf(w, "RemoteAddr = %q\n", r.RemoteAddr)
-	if err := r.ParseForm(); err != nil {
+	if err := r.ParseForm(); err != nil { // ParseForm parses the raw request (GET/POST/etc) and puts it in r.Form
 		log.Print(err)
 	}
 	for k, v := range r.Form {
