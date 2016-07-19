@@ -1,3 +1,3 @@
 # The Go Programming Language
 
-Example and Exercise code
+Example, exercise code, and notes from the awesome The Go Programming Language book
