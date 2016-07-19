@@ -1,0 +1,318 @@
+== Not Go specific ====
+  - Parameter vs Argument: Parameter is what's specified in function declaration / definition. Argument is the actual value that's passed to that function. Ex, "Command Line Arguments."
+  - UTF-8 is an encoding. Unicode is a character set.
+
+
+== General ====
+  - Even if a lot of people complain about Golang, this is still the best choice for me. None of the issues they mention are issues for me (well, except it has poor debug support, and no generics). And it has many things I like: It's static type, C-derived, has garbage collection, generates a single binary, supports concurrency very well, is opinionated, is small/simple, has a community that prefers to just use standard lib for most work, and is designed specifically for web-services. This is an ideal general purpose one language (to rule them all) that I want. Finally, I find it easier (maybe because it's C-derived) to have genuine understanding of how Go works internally compared to other languages like Ruby.
+  - Semicolons are automatically inserted if certain tokens precede a newline. That's why the opening brace of a function declaration (or for loop or if condition, etc) needs to be on the same line (to make it obvious that a semicolon should not be automatically inserted here). And that's why newline is permitted after '+' in 'x + y' but not before '+'.
+  - For the most part, the order of declaration of func, var, const, and type doesn't matter.
+  - Go doesn't explicitly differentiate between stacks and heaps. That's an implementation detail that can change.
+  - All indexing is half-open. So, for s = "abcd", the slice s[0:2] will include the character at index 0 ('a') but not the character at 2 ('c').
+  - A struct is a type which contains named fields which are collected together and treated as a unit.
+  - Methods can be defined for any named type (except a pointer or an interface); the receiver does not have to be a struct.
+  - a++ is a statement (an increment statement, which means a = a + 1). It is not an expression. So, b := a++ is invalid. This also makes ++a redundant (and hence invalid).
+  - Vim snippets I use: anon (anonymous function), cons (multiple constants), iota (multiple iota constants), def/defr (defer/defer+recover function), interface, if, else, errn (error return),  errh (error handle and return), json (marshaling tag), for (condition), fori (for i loop), forr (for range), func, ff (fmt.Printf), fn (fmt.Println), lf (log.Printf), ln (log.Println), main, meth (method), select, st (struct), switch, vars (multiple variables).
+
+
+== Packages ===========
+  - Each source file begins with a package declaration indicating which package the file belongs to.
+  - All .go files of a package reside in a single directory. Moreover, one directory can have only one package.
+  - Package main is special as it defines an executable instead of a library. Every executable must contain a main package and a main function, which becomes the entry point.
+  - Imported packages are added when code is linked (unlike Java, where packages are used at run-time).
+  - Missing or unused imported packages are considered errors. Use goimports to automatically manage addition/removal of import statements in addition to running gofmt.
+  - If there are more than one imported packages, then use the list form of package import rather than specifying each import separately. goimports takes care of that anyway. The order of imports doesn't matter (gofmt sorts them alphabetically).
+  - Imported packages can be renamed (ex, import format "fmt" will rename the "fmt" package "format"). The only scenario where this can be useful is if there are two similarly named packages. Otherwise, to keep code readable, don't change package names.
+  - The 'os' package provides features to interact with the underlying operating system in a platform-independent fashion. os.Args provides a slice containing command line arguments for the program with the first element being the name of the command/program itself.
+  - Any top-level variable (ie, declared in package block) or struct fields or type methods with name starting with a uppercase letter (ie, Unicode class 'Lu') is visible outside the package. In a publicly visible struct, only its public fields will be visible outside the package. Private fields can be accessed by any code in the same package (unlike Java). Protected doesn't exist as there's no inheritance.
+
+
+== Variables ==========
+  - Basic types: bool, string, int, int8/16/32/64, uint, uint8/16/32/64, byte (alias for uint8), rune (alias for int32), float32/64, complex64/128
+  - At the time of declaration, a variable is initialized to its zero value (unless explicitly initialized with a value).
+  - Declarations:
+      var i int // Normal declaration (variable names can be in unicode)
+      var p1, p2 *complex128 // Multiple variables of same type. BTW, no arithmetic allowed on pointers.
+      var name, age = "Neo", 30 // Implicit declaration and initialization.
+      p3, x := &i, 12 // Short variable declaration and initialization can be used inside functions only. It's not allowed at package level because it can be tricky for parser to handle (Every statement at package level currently needs to start with a keyword like var, func, etc).
+      chan := make(chan interface{}) // Notes about new() and make() below
+      var (
+        x bool = true
+        y int = 1
+      ) // Just like import statements, var declarations can be put in blocks
+      var v1 = Vertex{1,2} // Struct literal that declares and initializes for struct type defined as "type Vertex struct { x,y int }"
+      var v2 = Vertex{x: 1} // y gets its zero value, 0
+  - If you care about the size of the number (for example if it's used in data model), use explicitly sized integer or floating-point types. The natural machine size int & uint should be used when the size doesn't matter. Unlike C, you can not implicitly cast between, say, an int and int64 because that code may behave differently in different platforms.
+  - Command line arguments and environment variables are available globally. Ex,
+      os.Setenv("FOO", "1")
+      fmt.Println("FOO:", os.Getenv("FOO"))
+      fmt.Println(os.Args) // [./app-name a b c]
+  - new function allocates memory. It takes the type as the argument, and returns a pointer to a newly allocated zero value of that type. Ex,
+      x := new(StructA) // x has type *StructA
+  - make function allocates and initializes the types slice, map, or chan only. Like new, the first argument is a type. But, it can also take a second argument, the size. Unlike new, make’s return type is the same as the type of its argument, not a pointer to it. And the allocated value is initialized (not set to zero value like in new). The reason is that slice, map and chan are structs that need to be initialized, otherwise they won't be usable. Slice, map and chan being structs is also why it doesn't make sense for make function to return pointer (unlike new). Ex,
+      v []int = make([]int, 100) // creates v struct that has non-zero fields: pointer to an array, length, and capacity. So, v is immediately usable
+      p *[]int = new([]int) // *p has zero value nil, which makes p useless in its current state
+  - Constants declarations are similar to variable declarations, but, they cannot be declared using the := syntax.
+  - Constants can only be numbers, characters (runes), strings or booleans and must be defined by constant expressions, evaluatable by the compiler. For instance, 1<<3 is a constant expression, while math.Sin(math.Pi/4) is not because it needs to be executed at runtime by calling the function math.Sin.
+  - Within a constant declaration, the predeclared identifier iota represents successive untyped integer constants. It is reset to 0 whenever the reserved word const appears in the source.
+      const ( // iota reset to 0
+        c0 = iota // c0 == 0
+        c1 = iota // c1 == 1
+      )
+      const ( // iota reset to 0
+        f0 = 1 << iota // f0 == 1. Useful for flag constants
+        f1 = 1 << iota // f1 == 2
+      )
+      const x = iota // x == 0 as iota reset to 0
+  - Declaring a local variable and then taking its address vs declaring a pointer and using new() to create the actual variable may internally be the same implementation by the compiler. Your way of declaring a variable is a hint for the compiler, not an instruction.
+  - You can assign an int variable to your named type 'integer' without cast, but you can't assign a variable of type integer to int without cast.
+  - There's no implicit type conversion (keep in mind that using a numeric value is not implicit conversion. Ex, var x float64 = 2 // is still valid).
+  - Type conversion of an int to a string creates a single character string that has the Unicode decimal code of that int. fmt.Println(string(65)) will print A. Can not type-convert a string to an int.
+
+
+== Functions ==========
+  - A function declaration contains keyword "func", name of function, parameter list, result list, and the body. Ex:
+      func fnName(a string, b int) (x int, y int) { // body }
+  - If the parameter types are the same (as for x & y here), they can be specified together. Ex, (x, y int)
+  - Return values can be named (in which case, function can have naked "return" calls). Named return values are treated as variables defined at start of function. Ex,
+      func add(x, y int) (sum int) {
+        sum = x + y
+        return
+      }
+  - Use blank identifier '_' if you want any returned values to be discarded.
+  - When specifying variable number of parameters (variadic) in a function, they all need to be of the same type. Ex, func add(nums ...int) (int) { }. However, we can specify the variables to be of empty interface type interface{} to be able to send different types (at cost of losing the benefits of static typing).
+  - Functions are first class functions, which means we can pass, return and store them just like variables.
+  - A high order function is a function that inputs or outputs at least one function.
+  - A closure is a struct storing a function with its environment (ie values or references to non local variables that the function has access to). Go doesn't support named nested functions, but we can create closures using anonymous nested functions. Ex,
+      func highOrderFunction(y int) func(int) int { // This high order function takes y int as parameter and returns a function that takes an int and returns an int
+        return func(x int) int {
+          return x + y
+        }
+      }
+      var closure1 = highOrderFunction(1) // closure1(1) = 2 because y is set for this closure as 1
+      var closure2 = highOrderFunction(10) // closure2(1) = 11 because y is set for this closure as 10
+  - If you send a pointer to a local variable in a function F1 to another function F2, then that local variable is taken from the stack and put to heap so that it can be accessible outside of F1. Again, stack/heap is implementation detail that end-user shouldn't worry about or rely upon.
+  - When defining a method on a type (like a struct), add the type information before the method name. Ex,
+      func (s *MyStruct) pointerMethod() { } // method on pointer -- if struct needs to be modified, or if struct is too big to pass by value. Can't call with value because caller won't be expecting value to change
+      func (s MyStruct) valueMethod() { } // method on value -- can call this with receiver's pointer or value, but it will take value in either case. So, the struct used by caller can't have its values changed. It's better to use value methods for data safety.
+      // In both cases, the methods are called similarly: s.pointerMethod() and s.valueMethod()
+  - This way of defining methods on types is just syntactic sugar. In the end, it's just a function that takes the receiver (like the MyStruct s) as another argument. As the receiver is specified in methods (s, in the above example), there's no need for a 'this' or 'self.' Note: Methods can be defined for any user-defined types. Ex, Int defined as "type Int int" can have methods.
+
+
+== Loops =======
+  - A for loop can have:
+      for { // statements } // Zero components (infinite loop)
+      for i < 5 { // statements } // Just a condition component (while loop)
+      for i = 0; i < 5; i++ { // statements } // All components (initialization, condition, post)
+      for i, v := range "abc" { // statements } // Range of values (from data types like string, array, slice, etc) to iterate over
+  - Initialization can have variable declaration, assignment, or function call. Variables declared in loop initialization are only available in loop scope.
+  - The break and continue statements behave as expected in a loop. In addition, in case of nested loops, they can use a label to target any specific loop. Ex,
+      L: // Label useful to break out of multiple loops
+        for {
+          for {
+            break L
+          }
+        }
+  - In addition to the for loops, a break can also break out of switch and select statements.
+
+
+== Conditions ==========
+  - Just like the for loop, the if condition can also start with a short initialization statement before the condition:
+      if v := getValue(); v < 5 {
+        w := 2
+        // do something
+      } else {
+        // v will be accessible here too. But not w
+      }
+  - In switch, a case body breaks automatically unless it ends with a "fallthrough" statement. Just like for and if, switch can also have an initialization statement. Ex,
+      switch x := 2; x {
+      case 2: // First case that's checked
+        // do something
+      case f(): // function is called and this case body is executed if x matches the value the function returned. Note: Just like f() here, x in the switch statement could also be a function like x(). In that case, the function is executed and the returned value is compared to cases.
+        // do something
+      default: // default can be placed before other cases. It's evaluated ONLY if no case matches (including cases specified AFTER the default)
+        // do something else
+      }
+  - A switch with no condition is like "switch true". It can be used at times when we're not iterating through the values of any specific variable. Think of it as a cleaner way to list long if-else statements. Ex,
+      x, y := 2, 3
+      switch {
+      case x == 2:
+        fmt.Printf("x is 2")
+      case y == 3:
+        fmt.Printf("y is 3") // This won't get executed because x == 2 case was matched already
+      case someFunc()
+        fmt.Printf("someFunc() returned true")
+      default:
+        fmt.Printf("Default")
+      }
+
+
+== Interfaces ==========
+  - Interfaces support static duck typing. Duck typing means relying on implicit method implementation rather than explicit declaration of interface implementation. Static means that this check is still done at compile time rather than at runtime as in most scripting languages like Ruby. To summarize, in Go, any type that implements the methods from an interface implicitly implements that interface.
+  - If an interface has only one method (say, "Print"), then by convention, the interface name should suffix "er" to the method name. "Printer" in this case.
+  - For interface inheritance, use interface composition. In the below example, Point inherits from Printer through interface composition. So, to implement the Point interface, the type will need to implement all three methods Print(), X(), and Y():
+      type Point interface {
+        Printer
+        X() float64
+        Y() float64
+      }
+      type Printer interface {
+        Print()
+      }
+  - An empty interface type (interface{}) means "any type that implements at least no methods", ie, every type (basic types, structs, etc). interface{} is similar to Java's Object (except Object doesn't apply to primitive types in Java) and to some extent, C's void* (although void* can point to even garbage). You can store values to empty interface types, but obviously can't call any methods on them.
+  - By convention, a function that creates a new instance of an interface If1 is called NewIf1.
+
+
+== Pointers ==========
+  - Pointers are completely distinct from integers (unlike in C, etc).
+  - To convert Go pointers into C-like arbitrary pointers or to perform pointer arithmetic, use the "unsafe" package. However, other than for interfacing with other languages, there should be no need to use this package.
+
+
+== Slices & Arrays ==========
+  - As there is no pointer arithmetic, pointers and arrays in Go are distinct type (unlike in C) and the size of array is part of its type. A 10 int array is different from a 5 int array. A function with a 5 int array parameter can't accept a 10 int array (use slices in parameters if you want that flexibility).
+      var arr [4]int // Declaration of array
+      x := [...]int{1,2} // Implicit declaration and initialization of array. Whereas, []int{1,2} will create a slice (with an underlying array)
+      y := [...]int{1,2,3}
+      z := [...]int{4,5,6}
+      x = y // will throw an error because the array types for x & y aren't same.
+      z = y // will work because the types are same.
+  - Composite literals construct values for structs, arrays, slices, and maps and create a new value each time they are evaluated. They consist of the type of the literal followed by a brace-bound list of elements. Ex,
+      s := []int{1,2} // Slice
+      a := [...]int{1,2} // Array
+      p := Point{5,5} // Struct Point with x and y fields
+// HERE
+Slice is a view/window of an array. Internally, it's a struct with a pointer to the array, a size, and a capacity. So, they are cheaper to create and take fixed memory and time (unlike array). Slices are used in function parameters to allow arrays of any size to be passed.
+  var aSlice []int{1,2} // Will create a slice and an underlying array
+  firstHalfSlice := array1[:50] // Assuming array1 is a [100]int array
+  secondHalfSlice := array1[50:]
+  fullSlice := array1[:]
+  fmt.Printf("%T",fullSlice) // will show []int (so will secondHalfSlice). Whereas, fmt.Printf("%T",array1) will show [100]int
+
+Slices are immutable. Resizing a slice means creating a new slice (or, even a new bigger array if the older array isn't big enough). append() function adds the next element in the underlying array of a slice and returns a new slice that includes the next element
+	s0 := make([]int, 2, 3) // [0,0] of array [0,0,0]
+	s1 := append(s0, 2) // [0,0,2] of array [0,0,2]
+	s2 := append(s0, 3) // [0,0,3] of array [0,0,3] Note: s1 is now [0,0,3] because the underlying array for s0,s1,s2 is the same
+	s3 := append(s0, 4, 4) // [0,0,4,4] of a new array [0,0,4,4] because old array wasn't big enough. s0,s1,s2 still use the same old array
+
+Slices of slices:
+  s := [][]int{[]int{1, 2}, []int{3, 4}} // [ [1, 2], [3, 4] ]
+
+Looping through a range as in "for k, v := range mySlice { // do something }" is significantly faster as it gives compiler a way to perform bounds check once per loop rather than per iteration as in "for i < 10 { // do something }". Note: v is passed by value, not by reference.
+
+== Goroutines ==========
+  - Goroutine is a function call that completes asynchronously. This function may be run in a new OS thread or multiplexed on the same thread. 100K or more goroutines run fine. Goroutines are just green threads (GTs are usually managed by a VM instead of OS, but they can also be managed by a runtime library, as is the case with Go).
+  - Channels are used for communication (passing values of specified types) between goroutines. Don't communicate by sharing. Share by communicating.
+  - When one goroutine sends or receives on a channel, it blocks until another goroutine does the corresponding receive or send operation.
+  - When two goroutines touch the same memory, there's no guarantee about which one touches it first.
+  - Memory access "within" a goroutine can be reordered as long as it doesn't change the outcome of the routine. Ex,
+      a = b
+      use(b)
+      use(a)
+      b = 12
+      // can be reordered by complier as:
+      use(b)
+      a = b
+      b = 12
+      use(a)
+
+
+
+
+Strings are immutable. However, the comparison operator works on strings' values. Ex,
+  s1 := "A string"
+  s2 :=  "A " + "string"
+  s1 == s2  // will return true although &s1 != &s2.
+
+Strings can be treated as slices of bytes. However, a Unicode rune can be upto 4 bytes (unlike one byte characters as in C, where strings are just arrays of characters). So, for example, to iterate over runes of a string "a的c" if iterating over bytes using:
+  for i := 0 ; i<len(str) ; i++ {
+    fmt.Println(str[i])
+  }
+we will get 97\n231\n154\n132\n99 (where only 97 and 99 are correct Unicode decimal codes. The middle rune took 3 bytes), whereas if we iterate using range:
+  for _,v := range str {
+    fmt.Println(v)
+  }
+we will get 97\n30340\n99 (where all three Unicode decimal codes are correct). This is because the range iteration on a string is done on rune, not byte.
+
+Printf formatting verbs:
+  General - %v default format, %+v default format and add field names for structs, %#v Go syntax, %T type, %% literal percent sign, %t (default for bool) boolean true / false, %p (default for chan or pointer) pointer in base 16 notation. %v uses the built-in formatter for built-in types, or calls the String() method for user-defined structs.
+  Integer - %b base 2, %c Unicode rune value of the number (so, %c of 30340 would show 的), %d (default for int) base 10, %o base 8, %q single-quoted character safely escaped in Go syntax (%c of '\n' will print newline but %q will print the escaped character '\n'), %x base 16, %X same as %x but with upper-case A-F letters, %U Unicode format U+1234.
+  Floating point - %b exponent power of 2, %e scientific power of e, %E same as %e but with upper-case E, %f decimal, %F same as %f, %g (default for float) Use %f for small numbers and %e for bigger ones, %G Same as %g but with upper-case %E. %9.2f means width 9 and precision 2.
+  String & Byte - %s (default for string) string or slice, %q double-quoted string safely escaped in Go syntax.
+  Compound objects default formats are: for custom struct: {field0 field1}, for array/slice: [elem0 elem1], for map: map[key1:val1 key2:val2]
+
+Printf functions take empty interfaces as arguments and inspect their types to decide formatting. For ex, %b means base 2 if argument is an integer or exponent power of 2 if float.
+
+Regex compilation is expensive. So, they should be compiled once and reused everywhere. Use MustCompile() if you want program to panic on error in compiling regex rather than just returning err as in Compile(). This compilation of regex (which happens at runtime) should not be confused with compilation of program.
+
+Use grave accent (also called backtick) ` instead of double-quote to specify regex to avoid having to quote the backslashes. Ex, regexp.MustCompile(`\..*`) rather than regexp.MustCompile("\\..*")
+
+Map: a := make(map[int] string) // Map with int keys and string values. Any type that can be compared using == can be the key. Using interface{} as key type will make maps more flexible, but obviously lose the power of type-checking. So, it's better to not do so. Note: Structs have equality defined as: all fields are equal in both structs. Similarly, arrays are equal if all elements are equal. So, to find/match keys of struct type, all fields should be equal in both. Note: The order of iteration (ex, using range) for a map is not specified and is intentionally random in practice to discourage users from expecting a particular order.
+
+map is a reference to the data structure created by make. So, when a map is passed to a function, the function gets a copy of the reference, not the data structure itself. So, the changes made to a map in a function will reflect even outside the function.
+
+The second argument in make function takes the initial capacity of the map. However, the overhead of not specifying capacity is small. So, no need to specify.
+
+If we ask for value of a key that doesn't exist in the map, we will get the zero value of the value. So, to create a Set (unordered unique values), we can simply have a map with keys as the set elements and values as bool true. Keys that don't exist will return the zero value of bool, ie, false.
+
+List:
+  l := list.New()
+  l.PushBack(32)
+  l.PushBack("str")
+Lists are not type-specific. They use empty interface type for stored objects. The reason is that lists are in the standard library not in the core language. And, you can only pass types as arguments to built-in functions like new() and make(), not to library functions like list.New(). As slices are more efficient and type-safer than lists, there's not much need for using lists.
+
+defer statement is similar to Java's finally. The call in the defer statement is executed when the function exits even if it's exiting due to a runtime panic. Call defer statement as soon as you know you're going to need it. Deferred calls are executed in LIFO order.
+
+panic "func panic(v interface{})" and recover "func recover() interface{}" are like exceptions and catch. Panics generally mean the code doesn't know how to proceed further. Recover only if it is safe to do so. Otherwise exit program (or return error to client in case of server app).
+
+Call defer recover (recover function outside of defer just returns nil) before any code that may start a panic. If panic happens, it will unwind the stack to look for defer code to execute. Any call to recover function in that deferred code will stop the panicking sequence and return the argument sent in panic. If there is no panic, recover will return nil. Panics shouldn't be expected and they are not an alternative to correct error handling.
+
+The error interface is declared as "type error interface { Error() string }". The errors package's errors.New function uses a trivial implementation of error interface called errorString.
+
+  go someFunc() // Call someFunc in a goroutine
+  go func() {
+    // Do something
+  }() // Closure through anonymous function in a goroutine
+Like threads in other languages, functions called through goroutines can access local variables of the function in which it's called. The local variables are passed by value to those functions.
+
+However, they are passed by reference in case of closures. Moreover, because there's no guarantee regarding the order of execution of the goroutines, if a variable is modified after calling a closure through goroutine, there's no guarantee what value (before or after modification) of the variable will be in the closure. In such cases, it's better to pass that variable as an argument to the closure. Ex, go func(y int) { // Do something }(x) will ensure that even if x is changed in main goroutine, the value y is not in the closure.
+
+If the program is exiting before goroutines complete, then the goroutines will be terminated.
+
+There is no way to specify priorities of goroutines. However, we can yield in the low priority goroutines frequently by calling runtime.Gosched(). goroutines yield on unbuffered chan send/recv, syscalls (incl file/network read/writes), memory allocation, time.Sleep(), and runtime.Gosched().
+
+The sync package provides simple mutex locks that can be held by just one goroutine at a time. Other goroutines wanting to lock them will wait for their turn: var lock sync.Mutex; lock.Lock(); // Do whatever; lock.Unlock() // Unlocked is the zero value of a mutex
+
+Go mutexes are really binary semaphores (not traditional mutexes). Meaning, they have no owner and they can't be used recursively. Calling Lock() on a mutex in the goroutine that has already locked it will cause deadlock. Using mutexes is not idiomatic Go. Use concurrency design patterns instead (discussed later).
+
+func NewCond(l Locker) *Cond function returns condition that can be used to make goroutines wait till some condition is met. Cond.L field gives access to this locker.
+
+Many requirements that need generics can be served by using non-empty interfaces (to provide at least some type safety), or by using go generate (better solution).
+
+== HTTP HandleFunc ====
+After you add handlers, the HTTP request multiplexer ServeMux the URL of each incoming request against a list of registered patterns of these handlers and calls the handler for the pattern that most closely matches the URL.
+
+Patterns may optionally begin with a host name, restricting matches to URLs on that host only.
+
+To allow the server to serve multiple requests simultaneously, each incoming request is served by a handler run in a separate goroutine.
+
+== Best Practices ====
+Have a single GOPATH for all projects.
+
+Keep repos in canonical paths. Ex, $GOPATH/src/github.com/browniepoints/foo
+
+main function should extract configuration from environment and send them to appropriate places. Other functions shouldn't use access to global variables (which is what environment variables are). They should go to said appropriate places to get access to the configuration values.
+
+On save:
+  goimport
+
+On commit or build:
+  go vet, golint, go test, go install (which is better than go build)
+
+On deploy:
+  go test -tags=integration
+
+More: https://github.com/golang/go/wiki/CodeReviewComments
+
+===
+
+p 142
