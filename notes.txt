@@ -15,8 +15,19 @@
   - Vim snippets I use: anon (anonymous function), cons (multiple constants), iota (multiple iota constants), def/defr (defer/defer+recover function), interface, if, else, errn (error return),  errh (error handle and return), json (marshaling tag), for (condition), fori (for i loop), forr (for range), func, ff (fmt.Printf), fn (fmt.Println), lf (log.Printf), ln (log.Println), main, meth (method), select, st (struct), switch, vars (multiple variables).
 
 
+== Names ===========
+  - Names begin with Unicode letter and can have any number of letters (case-sensitive), digits or underscores.
+  - 25 keywords: break, case, chan, const, continue, for, import, interface, map, package, range, return, select, struct, switch, type, var, default, defer, else, fallthrough, if, func, go, goto
+  - Built-in constants, types, and functions:
+    - Constants: true, false, iota, nil
+    - Types: int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64, complex128, complex64, bool, byte, rune, string, error
+    - Functions: make, len, cap, new, append, copy, close, delete, complex, real, imag, panic, recover
+  - These built-in names are not reserved and can be used in your own declarations. Ex,
+      true := "Hi" // is valid and it creates an int variable called true and sets its value as "Hi". There should be very few reasons to do so, though.
+
+
 == Packages ===========
-  - Each source file begins with a package declaration indicating which package the file belongs to.
+  - Each source file begins with a package declaration indicating which package the file belongs to. Package names are always lowercase.
   - All .go files of a package reside in a single directory. Moreover, one directory can have only one package.
   - Package main is special as it defines an executable instead of a library. Every executable must contain a main package and a main function, which becomes the entry point.
   - Imported packages are added when code is linked (unlike Java, where packages are used at run-time).
@@ -27,21 +38,24 @@
   - Any top-level variable (ie, declared in package block) or struct fields or type methods with name starting with a uppercase letter (ie, Unicode class 'Lu') is visible outside the package. In a publicly visible struct, only its public fields will be visible outside the package. Private fields can be accessed by any code in the same package (unlike Java). Protected doesn't exist as there's no inheritance.
 
 
-== Variables ==========
+== Variables & Constants ==========
   - Basic types: bool, string, int, int8/16/32/64, uint, uint8/16/32/64, byte (alias for uint8), rune (alias for int32), float32/64, complex64/128
   - At the time of declaration, a variable is initialized to its zero value (unless explicitly initialized with a value).
   - Declarations:
       var i int // Normal declaration (variable names can be in unicode)
-      var p1, p2 *complex128 // Multiple variables of same type. BTW, no arithmetic allowed on pointers.
+      var p1, p2 *complex128 // Multiple variables of same type.
       var name, age = "Neo", 30 // Implicit declaration and initialization.
-      p3, x := &i, 12 // Short variable declaration and initialization can be used inside functions only. It's not allowed at package level because it can be tricky for parser to handle (Every statement at package level currently needs to start with a keyword like var, func, etc).
+      p3, x := &i, 12 // Short variable declaration
       chan := make(chan interface{}) // Notes about new() and make() below
       var (
-        x bool = true
-        y int = 1
+        x = isItVisible() // Initialization through function call
+        y int // Zero value 0
+        z = y + 1 // Initialization through addition expression
       ) // Just like import statements, var declarations can be put in blocks
       var v1 = Vertex{1,2} // Struct literal that declares and initializes for struct type defined as "type Vertex struct { x,y int }"
       var v2 = Vertex{x: 1} // y gets its zero value, 0
+  - Short variable declaration and initialization can only be used inside functions. It's not allowed at package level because it can be tricky for parser to handle (Every statement at package level currently needs to start with a keyword like var, func, etc).
+  - Short declaration only declares variables that aren't already declared in the same lexical block. For others, it just acts as assignment. A short declaration should have least one new variable, though.
   - If you care about the size of the number (for example if it's used in data model), use explicitly sized integer or floating-point types. The natural machine size int & uint should be used when the size doesn't matter. Unlike C, you can not implicitly cast between, say, an int and int64 because that code may behave differently in different platforms.
   - Command line arguments and environment variables are available globally. Ex,
       os.Setenv("FOO", "1")
@@ -52,7 +66,7 @@
   - make function allocates and initializes the types slice, map, or chan only. Like new, the first argument is a type. But, it can also take a second argument, the size. Unlike new, make’s return type is the same as the type of its argument, not a pointer to it. And the allocated value is initialized (not set to zero value like in new). The reason is that slice, map and chan are structs that need to be initialized, otherwise they won't be usable. Slice, map and chan being structs is also why it doesn't make sense for make function to return pointer (unlike new). Ex,
       v []int = make([]int, 100) // creates v struct that has non-zero fields: pointer to an array, length, and capacity. So, v is immediately usable
       p *[]int = new([]int) // *p has zero value nil, which makes p useless in its current state
-  - Constants declarations are similar to variable declarations, but, they cannot be declared using the := syntax.
+  - Constants declarations are similar to variable declarations, but, they cannot be declared using the := syntax. And,
   - Constants can only be numbers, characters (runes), strings or booleans and must be defined by constant expressions, evaluatable by the compiler. For instance, 1<<3 is a constant expression, while math.Sin(math.Pi/4) is not because it needs to be executed at runtime by calling the function math.Sin.
   - Within a constant declaration, the predeclared identifier iota represents successive untyped integer constants. It is reset to 0 whenever the reserved word const appears in the source.
       const ( // iota reset to 0
@@ -68,10 +82,12 @@
   - You can assign an int variable to your named type 'integer' without cast, but you can't assign a variable of type integer to int without cast.
   - There's no implicit type conversion (keep in mind that using a numeric value is not implicit conversion. Ex, var x float64 = 2 is still valid).
   - Type conversion of an int to a string creates a single character string that has the Unicode decimal code of that int. fmt.Println(string(65)) will print A. Can not type-convert a string to an int.
+  - Tuple assignment:
+      x, y = y, x // x and y swap their values
 
 
 == Functions ==========
-  - A function declaration contains keyword "func", name of function, parameter list, result list, and the body. Ex:
+  - A function declaration contains keyword "func", name of function, parameter list, optional results list, and the body. Ex:
       func fnName(a string, b int) (x int, y int) { /* body */ }
   - If the parameter types are the same (as for x & y here), they can be specified together. Ex, (x, y int)
   - Return values can be named (in which case, function can have naked "return" calls). Named return values are treated as variables defined at start of function. Ex,
@@ -91,7 +107,6 @@
       }
       var closure1 = highOrderFunction(1) // closure1(1) = 2 because y is set for this closure as 1
       var closure2 = highOrderFunction(10) // closure2(1) = 11 because y is set for this closure as 10
-  - If you send a pointer to a local variable in a function F1 to another function F2, then that local variable is taken from the stack and put to heap so that it can be accessible outside of F1. Again, stack/heap is implementation detail that end-user shouldn't worry about or rely upon.
   - When defining a method on a type (like a struct), add the type information before the method name. Ex,
       func (s *MyStruct) pointerMethod() { } // method on pointer -- if struct needs to be modified, or if struct is too big to pass by value. Can't call with value because caller won't be expecting value to change
       func (s MyStruct) valueMethod() { } // method on value -- can call this with receiver's pointer or value, but it will take value in either case. So, the struct used by caller can't have its values changed. It's better to use value methods for data safety.
@@ -178,8 +193,9 @@
 
 
 == Pointers ==========
-  - Pointers are completely distinct from integers (unlike in C, etc).
+  - Pointers are completely distinct from integers (unlike in C, etc). No arithmetic allowed on pointers.
   - To convert Go pointers into C-like arbitrary pointers or to perform pointer arithmetic, use the "unsafe" package. However, other than for interfacing with other languages, there should be no need to use this package.
+  - If you send a pointer of a local variable in a function F1 to another function F2, then that local variable is taken from the stack and put to heap so that it can be accessible outside of F1. Again, stack/heap is implementation detail that end-user shouldn't worry about or rely upon.
 
 
 == Slices, Arrays, and Lists ==========
