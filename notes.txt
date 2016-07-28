@@ -17,13 +17,12 @@
 
 == Names ===========
   - Names begin with Unicode letter and can have any number of letters (case-sensitive), digits or underscores.
-  - 25 keywords: break, case, chan, const, continue, for, import, interface, map, package, range, return, select, struct, switch, type, var, default, defer, else, fallthrough, if, func, go, goto
-  - Built-in constants, types, and functions:
+  - Keywords: break, case, chan, const, continue, for, import, interface, map, package, range, return, select, struct, switch, type, var, default, defer, else, fallthrough, if, func, go, goto
+  - Built-in constants, types, and functions (These names are not reserved and can be used in your own declarations):
     - Constants: true, false, iota, nil
     - Types: int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64, complex128, complex64, bool, byte, rune, string, error
     - Functions: make, len, cap, new, append, copy, close, delete, complex, real, imag, panic, recover
-  - These built-in names are not reserved and can be used in your own declarations. Ex,
-      true := "Hi" // is valid and it creates an int variable called true and sets its value as "Hi". There should be very few reasons to do so, though.
+    - Note: true := "Hi" // is valid (because true is not reserved) and it creates a string variable called true and sets its value as "Hi". There should be very few reasons to do so, though.
 
 
 == Packages ===========
@@ -84,6 +83,13 @@
   - Type conversion of an int to a string creates a single character string that has the Unicode decimal code of that int. fmt.Println(string(65)) will print A. Can not type-convert a string to an int.
   - Tuple assignment:
       x, y = y, x // x and y swap their values
+  - Printf formatting verbs:
+    - General - %v default format, %+v default format and add field names for structs, %#v Go syntax, %T type, %% literal percent sign, %t (default for bool) boolean true / false, %p (default for chan or pointer) pointer in base 16 notation. %v uses the built-in formatter for built-in types, or calls the String() method for user-defined structs.
+    - Integer - %b base 2, %c Unicode rune value of the number (so, %c of 30340 would show 的), %d (default for int) base 10, %o base 8, %q single-quoted character safely escaped in Go syntax (%c of '\n' will print newline but %q will print the escaped character '\n'), %x base 16, %X same as %x but with upper-case A-F letters, %U Unicode format U+1234.
+    - Floating point - %b exponent power of 2, %e scientific power of e, %E same as %e but with upper-case E, %f decimal, %F same as %f, %g (default for float) Use %f for small numbers and %e for bigger ones, %G Same as %g but with upper-case %E. %9.2f means width 9 and precision 2.
+    - String & Byte - %s (default for string) string or slice, %q double-quoted string safely escaped in Go syntax.
+    - Compound objects default formats are: for custom struct: {field0 field1}, for array/slice: [elem0 elem1], for map: map[key1:val1 key2:val2]
+  - Printf functions take empty interfaces as arguments and inspect their types to decide formatting. For ex, %b means base 2 if argument is an integer or exponent power of 2 if float.
 
 
 == Functions ==========
@@ -245,13 +251,6 @@
       for _,v := range str {
         fmt.Printf("%d ", v)
       } // we get 97 30340 99. All three Unicode decimal codes are correct. This is because the range iteration on a string is done on rune, not byte.
-  - Printf formatting verbs:
-    - General - %v default format, %+v default format and add field names for structs, %#v Go syntax, %T type, %% literal percent sign, %t (default for bool) boolean true / false, %p (default for chan or pointer) pointer in base 16 notation. %v uses the built-in formatter for built-in types, or calls the String() method for user-defined structs.
-    - Integer - %b base 2, %c Unicode rune value of the number (so, %c of 30340 would show 的), %d (default for int) base 10, %o base 8, %q single-quoted character safely escaped in Go syntax (%c of '\n' will print newline but %q will print the escaped character '\n'), %x base 16, %X same as %x but with upper-case A-F letters, %U Unicode format U+1234.
-    - Floating point - %b exponent power of 2, %e scientific power of e, %E same as %e but with upper-case E, %f decimal, %F same as %f, %g (default for float) Use %f for small numbers and %e for bigger ones, %G Same as %g but with upper-case %E. %9.2f means width 9 and precision 2.
-    - String & Byte - %s (default for string) string or slice, %q double-quoted string safely escaped in Go syntax.
-    - Compound objects default formats are: for custom struct: {field0 field1}, for array/slice: [elem0 elem1], for map: map[key1:val1 key2:val2]
-  - Printf functions take empty interfaces as arguments and inspect their types to decide formatting. For ex, %b means base 2 if argument is an integer or exponent power of 2 if float.
   - Regex compilation is expensive. So, they should be compiled once and reused everywhere. Use MustCompile() if you want program to panic on error in compiling regex rather than just returning err as in Compile(). This compilation of regex (which happens at runtime) should not be confused with compilation of program.
   - Use grave accent (also called backtick) ` instead of double-quote to specify regex to avoid having to quote the backslashes. Ex, regexp.MustCompile(`\..*`) rather than regexp.MustCompile("\\..*")
 
