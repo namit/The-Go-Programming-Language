@@ -1,18 +1,20 @@
 == Not Go specific ====
   - Parameter vs Argument: Parameter is what's specified in function declaration / definition. Argument is the actual value that's passed to that function. Ex, "Command Line Arguments."
-  - UTF-8 is an encoding. Unicode is a character set.
+  - Unicode is a character set (which, for ex, says code-point 'A' is represented by number 65. In hex, that's x0041. That's why the Unicode for 'A' is U+0041.
+  - UTF-8 is an encoding (which, for ex, saves that 65 number in 8-bit binary). UTF-8 may use 1 to 4 bytes to encode Unicode code-points.
 
 
 == General ====
-  - Even if a lot of people complain about Golang, this is still the best choice for me. None of the issues they mention are issues for me (well, except it has poor debug support, and no generics). And it has many things I like: It's static type, C-derived, has garbage collection, generates a single binary, supports concurrency very well, is opinionated, is small/simple, has a community that prefers to just use standard lib for most work, and is designed specifically for web-services. This is an ideal general purpose one language (to rule them all) that I want. Finally, I find it easier (maybe because it's C-derived) to have genuine understanding of how Go works internally compared to other languages like Ruby.
+  - Even if a lot of people complain about Golang, this is still the best choice for me. None of the issues they mention are issues for me (well, except it has poor debug support, and no generics). And it has many things I like: It's static type, C-derived, has garbage collection, generates a single binary, supports concurrency very well, is opinionated, is small/simple, has a community that prefers to just use standard lib for most work, and is designed specifically for web-services. This is an ideal general purpose one-language (to rule them all) that I want. Finally, I find it easier (maybe because it's C-derived) to have genuine understanding of how Go works internally compared to other languages like Ruby, Elixir, etc.
   - Semicolons are automatically inserted if certain tokens precede a newline. That's why the opening brace of a function declaration (or for loop or if condition, etc) needs to be on the same line (to make it obvious that a semicolon should not be automatically inserted here). And that's why newline is permitted after '+' in 'x + y' but not before '+'.
   - For the most part, the order of declaration of func, var, const, and type doesn't matter.
   - Go doesn't explicitly differentiate between stacks and heaps. That's an implementation detail that can change.
   - All indexing is half-open. So, for s = "abcd", the slice s[0:2] will include the character at index 0 ('a') but not the character at 2 ('c').
   - A struct is a type which contains named fields which are collected together and treated as a unit.
-  - Methods can be defined for any named type (except a pointer or an interface); the receiver does not have to be a struct.
+  - Methods can be defined for any named type (except a pointer or an interface), not just structs.
   - a++ is a statement (an increment statement, which means a = a + 1). It is not an expression. So, b := a++ is invalid. This also makes ++a redundant (and hence invalid).
   - Vim snippets I use: anon (anonymous function), cons (multiple constants), iota (multiple iota constants), def/defr (defer/defer+recover function), interface, if, else, errn (error return),  errh (error handle and return), json (marshaling tag), for (condition), fori (for i loop), forr (for range), func, ff (fmt.Printf), fn (fmt.Println), lf (log.Printf), ln (log.Println), main, meth (method), select, st (struct), switch, vars (multiple variables).
+  - Go uses runes (int32, ie, 4 bytes) for Unicode code-points.
 
 
 == Names ===========
@@ -22,7 +24,7 @@
     - Constants: true, false, iota, nil
     - Types: int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr, float32, float64, complex128, complex64, bool, byte, rune, string, error
     - Functions: make, len, cap, new, append, copy, close, delete, complex, real, imag, panic, recover
-    - Note: true := "Hi" // is valid (because true is not reserved) and it creates a string variable called true and sets its value as "Hi". There should be very few reasons to do so, though.
+    - So, true := "Hi" // is valid (because true is not reserved) and it creates a string variable called true and sets its value as "Hi". There should be very few reasons to do so, though.
 
 
 == Packages ===========
@@ -30,30 +32,30 @@
   - All .go files of a package reside in a single directory. Moreover, one directory can have only one package.
   - Package main is special as it defines an executable instead of a library. Every executable must contain a main package and a main function, which becomes the entry point.
   - Imported packages are added when code is linked (unlike Java, where packages are used at run-time).
-  - Missing or unused imported packages are considered errors. Use goimports to automatically manage addition/removal of import statements in addition to running gofmt.
+  - Missing or unused imported packages are considered errors. Use goimports to: (a) automatically manage addition/removal of import statements (b) run gofmt.
   - If there are more than one imported packages, then use the list form of package import rather than specifying each import separately. goimports takes care of that anyway. The order of imports doesn't matter (gofmt sorts them alphabetically).
   - Imported packages can be renamed (ex, import format "fmt" will rename the "fmt" package "format"). The only scenario where this can be useful is if there are two similarly named packages. Otherwise, to keep code readable, don't change package names.
   - The 'os' package provides features to interact with the underlying operating system in a platform-independent fashion. os.Args provides a slice containing command line arguments for the program with the first element being the name of the command/program itself.
-  - Any top-level variable (ie, declared in package block) or struct fields or type methods with name starting with a uppercase letter (ie, Unicode class 'Lu') is visible outside the package. In a publicly visible struct, only its public fields will be visible outside the package. Private fields can be accessed by any code in the same package (unlike Java). Protected doesn't exist as there's no inheritance.
+  - Any top-level variables (ie, declared in package block), fields of public struct, or type methods that have their names starting with a uppercase letters (ie, Unicode class 'Lu') are considered public (ie, visible outside the package). In a public struct, only the fields explicitly made public will be considered public. Private fields can be accessed by code from the same package (unlike Java). Protected doesn't exist as there's no inheritance.
 
 
 == Variables & Constants ==========
   - Basic types: bool, string, int, int8/16/32/64, uint, uint8/16/32/64, byte (alias for uint8), rune (alias for int32), float32/64, complex64/128
   - At the time of declaration, a variable is initialized to its zero value (unless explicitly initialized with a value).
   - Declarations:
-      var i int // Normal declaration (variable names can be in unicode)
-      var p1, p2 *complex128 // Multiple variables of same type.
-      var name, age = "Neo", 30 // Implicit declaration and initialization.
-      p3, x := &i, 12 // Short variable declaration
+      var i int // Normal declaration
+      var p1, p2 *complex128 // Multiple variables of same type
+      var name, age = "Neo", 30 // Implicit declaration and initialization of different types
+      p3, x := &i, 12 // Short variable declaration of different types
       chan := make(chan interface{}) // Notes about new() and make() below
       var (
         x = isItVisible() // Initialization through function call
         y int // Zero value 0
         z = y + 1 // Initialization through addition expression
       ) // Just like import statements, var declarations can be put in blocks
-      var v1 = Vertex{1,2} // Struct literal that declares and initializes for struct type defined as "type Vertex struct { x,y int }"
+      var v1 = Vertex{1,2} // Struct literal that declares and initializes for a struct type defined as "type Vertex struct { x,y int }"
       var v2 = Vertex{x: 1} // y gets its zero value, 0
-  - Short variable declaration and initialization can only be used inside functions. It's not allowed at package level because it can be tricky for parser to handle (Every statement at package level currently needs to start with a keyword like var, func, etc).
+  - Short variable declaration and initialization can only be used inside functions. It's not allowed at package level because it can be tricky for parser to handle. Currently, every statement at package level needs to start with a keyword like var, func, etc.
   - Short declaration only declares variables that aren't already declared in the same lexical block. For others, it just acts as assignment. A short declaration should have least one new variable, though.
   - If you care about the size of the number (for example if it's used in data model), use explicitly sized integer or floating-point types. The natural machine size int & uint should be used when the size doesn't matter. Unlike C, you can not implicitly cast between, say, an int and int64 because that code may behave differently in different platforms.
   - Command line arguments and environment variables are available globally. Ex,
@@ -62,11 +64,11 @@
       fmt.Println(os.Args) // [./app-name a b c]
   - new function allocates memory. It takes the type as the argument, and returns a pointer to a newly allocated zero value of that type. Ex,
       x := new(StructA) // x has type *StructA
-  - make function allocates and initializes the types slice, map, or chan only. Like new, the first argument is a type. But, it can also take a second argument, the size. Unlike new, make’s return type is the same as the type of its argument, not a pointer to it. And the allocated value is initialized (not set to zero value like in new). The reason is that slice, map and chan are structs that need to be initialized, otherwise they won't be usable. Slice, map and chan being structs is also why it doesn't make sense for make function to return pointer (unlike new). Ex,
-      v []int = make([]int, 100) // creates v struct that has non-zero fields: pointer to an array, length, and capacity. So, v is immediately usable
+  - make function allocates and initializes the types slice, map, or chan only. Like new, the first argument is a type. But, it can also take a second argument, the size. Unlike new, make’s return type is the same as the type of its argument, not a pointer to it. And the allocated value is initialized (not set to zero value like in new). The reason is that slice, map and chan are structs aren't usable without initialization. Slice, map and chan being structs is also why it doesn't make sense for make function to return pointer (unlike new). Ex,
+      v []int = make([]int, 100) // creates slice v, a struct that has non-zero fields: pointer to an array, length, and capacity. So, v is immediately usable
       p *[]int = new([]int) // *p has zero value nil, which makes p useless in its current state
-  - Constants declarations are similar to variable declarations, but, they cannot be declared using the := syntax. And,
-  - Constants can only be numbers, characters (runes), strings or booleans and must be defined by constant expressions, evaluatable by the compiler. For instance, 1<<3 is a constant expression, while math.Sin(math.Pi/4) is not because it needs to be executed at runtime by calling the function math.Sin.
+  - Constants declarations are similar to variable declarations, but, they cannot be declared using the := (short declaration) syntax.
+  - Constants can only be numbers, characters (runes), strings or booleans and must be defined by constant expressions, evaluate-able by the compiler. For instance, 1<<3 is a constant expression, while math.Sin(math.Pi/4) is not because function math.Sin needs to be executed at runtime.
   - Within a constant declaration, the predeclared identifier iota represents successive untyped integer constants. It is reset to 0 whenever the reserved word const appears in the source.
       const ( // iota reset to 0
         c0 = iota // c0 == 0
@@ -74,7 +76,7 @@
       )
       const ( // iota reset to 0
         f0 = 1 << iota // f0 == 1. Useful for flag constants
-        f1 = 1 << iota // f1 == 2
+        f1 = 1 << iota // f1 == 2, f2 == 4, and so on
       )
       const x = iota // x == 0 as iota reset to 0
   - Declaring a local variable and then taking its address vs declaring a pointer and using new() to create the actual variable may internally be the same implementation by the compiler. Your way of declaring a variable is a hint for the compiler, not an instruction.
