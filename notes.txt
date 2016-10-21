@@ -1,7 +1,7 @@
 == Not Go specific ====
   - Parameter vs Argument: Parameter is what's specified in function declaration / definition. Argument is the actual value that's passed to that function. Ex, "Command Line Arguments."
   - Unicode is a character set (which, for ex, says code-point 'A' is represented by number 65. In hex, that's x0041. That's why the Unicode for 'A' is U+0041.
-  - UTF-8 is an encoding (which, for ex, saves that 65 number in 8-bit binary). UTF-8 may use 1 to 4 bytes to encode Unicode code-points.
+  - UTF-8 is an encoding (which, for ex, saves that 65 number in 8-bit binary). UTF-8 may use 1 to 4 bytes to encode any Unicode code-points.
 
 
 == General ====
@@ -87,7 +87,7 @@
       x, y = y, x // x and y swap their values
   - Printf formatting verbs:
     - General - %v default format, %+v default format and add field names for structs, %#v Go syntax, %T type, %% literal percent sign, %t (default for bool) boolean true / false, %p (default for chan or pointer) pointer in base 16 notation. %v uses the built-in formatter for built-in types, or calls the String() method for user-defined structs.
-    - Integer - %b base 2, %c Unicode rune value of the number (so, %c of 30340 would show 的), %d (default for int) base 10, %o base 8, %q single-quoted character safely escaped in Go syntax (%c of '\n' will print newline but %q will print the escaped character '\n'), %x base 16, %X same as %x but with upper-case A-F letters, %U Unicode format U+1234.
+    - Integer - %b base 2, %c Unicode rune value of the number (so, %c of 30340 would show 的. You can guess what %c of 65 will show), %d (default for int) base 10, %o base 8, %q single-quoted character safely escaped in Go syntax (%c of '\n' will print newline but %q will print the escaped character '\n'), %x base 16, %X same as %x but with upper-case A-F letters, %U Unicode format U+1234.
     - Floating point - %b exponent power of 2, %e scientific power of e, %E same as %e but with upper-case E, %f decimal, %F same as %f, %g (default for float) Use %f for small numbers and %e for bigger ones, %G Same as %g but with upper-case %E. %9.2f means width 9 and precision 2.
     - String & Byte - %s (default for string) string or slice, %q double-quoted string safely escaped in Go syntax.
     - Compound objects default formats are: for custom struct: {field0 field1}, for array/slice: [elem0 elem1], for map: map[key1:val1 key2:val2]
@@ -104,7 +104,7 @@
         return
       }
   - Use blank identifier '_' if you want any returned values to be discarded.
-  - When specifying variable number of parameters (variadic) in a function, they all need to be of the same type. Ex, func add(nums ...int) (int) { }. However, we can specify the variables to be of empty interface type interface{} to be able to send different types (at cost of losing the benefits of static typing).
+  - When specifying variable number of parameters (variadic) in a function, they all need to be of the same type. Ex, func add(nums ...int) (int) { }. However, we can specify the variables to be of empty interface type interface{} to be able to send different types (but we lose the benefits of static typing).
   - Functions are first class functions, which means we can pass, return and store them just like variables.
   - A high order function is a function that inputs or outputs at least one function.
   - A closure is a struct storing a function with its environment (ie values or references to non local variables that the function has access to). Go doesn't support named nested functions, but we can create closures using anonymous nested functions. Ex,
@@ -113,11 +113,11 @@
           return x + y
         }
       }
-      var closure1 = highOrderFunction(1) // closure1(1) = 2 because y is set for this closure as 1
-      var closure2 = highOrderFunction(10) // closure2(1) = 11 because y is set for this closure as 10
+      var closure1 = highOrderFunction(1) // closure1(1) = 2 because this closure has saved a value of 1 for y
+      var closure2 = highOrderFunction(10) // closure2(1) = 11 because this closure has saved a value of 10 for y
   - When defining a method on a type (like a struct), add the type information before the method name. Ex,
-      func (s *MyStruct) pointerMethod() { } // method on pointer -- if struct needs to be modified, or if struct is too big to pass by value. Can't call with value because caller won't be expecting value to change
-      func (s MyStruct) valueMethod() { } // method on value -- can call this with receiver's pointer or value, but it will take value in either case. So, the struct used by caller can't have its values changed. It's better to use value methods for data safety.
+      func (s *MyStruct) pointerMethod() { } // method on pointer. Useful if struct needs to be modified, or if struct is too big to pass by value. Can't call this method with value because caller won't be expecting value to change
+      func (s MyStruct) valueMethod() { } // method on value. Can call this with pointer or value, but it will take value in either case. It's better to use value methods for data safety.
       // In both cases, the methods are called similarly: s.pointerMethod() and s.valueMethod()
   - This way of defining methods on types is just syntactic sugar. In the end, it's just a function that takes the receiver (like the MyStruct s) as another argument. As the receiver is specified in methods (s, in the above example), there's no need for a 'this' or 'self.' Note: Methods can be defined for any user-defined types. Ex, Int defined as "type Int int" can have methods.
   - defer statement is similar to Java's finally. The call in the defer statement is executed when the function exits even if it's exiting due to a runtime panic. Call defer statement as soon as you know you're going to need it.
@@ -142,7 +142,7 @@
       for i = 0; i < 5; i++ { /* statements */ } // All components (initialization, condition, post)
       for i, v := range "abc" { /* statements */ } // Range of values (from data types like string, array, slice, etc) to iterate over. Looping through a range is significantly faster as it gives compiler a way to perform bounds check once per loop rather than per iteration as in "for i < 10". Remember that v is passed by value, not by reference.
   - Initialization can have variable declaration, assignment, or function call. Variables declared in loop initialization are only available in loop scope.
-  - The break and continue statements behave as expected in a loop. In addition, in case of nested loops, they can use a label to target any specific loop. Ex,
+  - The break and continue statements behave as expected in a loop. In addition, in case of nested loops, a label can be used to target any specific loop. Ex,
       L: // Label useful to break out of multiple loops
         for {
           for {
@@ -166,7 +166,7 @@
         // do something
       case f(): // function is called and this case body is executed if x matches the value the function returned. Note: Just like f() here, x in the switch statement could also be a function like x(). In that case, the function is executed and the returned value is compared to cases.
         // do something
-      default: // default can be placed before other cases. It's evaluated ONLY if no case matches (including cases specified AFTER the default)
+      default: // default can be placed before other cases. It's evaluated ONLY if no case matches (including cases specified after the default)
         // do something else
       }
   - A switch with no condition is like "switch true". It can be used at times when we're not iterating through the values of any specific variable. Think of it as a cleaner way to list long if-else statements. Ex,
