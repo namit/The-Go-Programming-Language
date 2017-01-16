@@ -14,7 +14,6 @@
   - Methods can be defined for any named type (except a pointer or an interface), not just structs.
   - a++ is a statement (an increment statement, which means a = a + 1). It is not an expression. So, b := a++ is invalid. This also makes ++a redundant (and hence invalid).
   - Vim snippets I use: anon (anonymous function), cons (multiple constants), iota (multiple iota constants), def/defr (defer/defer+recover function), interface, if, else, errn (error return),  errh (error handle and return), json (marshaling tag), for (condition), fori (for i loop), forr (for range), func, ff (fmt.Printf), fn (fmt.Println), lf (log.Printf), ln (log.Println), main, meth (method), select, st (struct), switch, vars (multiple variables).
-  - Go uses runes (int32, ie, 4 bytes) for Unicode code-points.
 
 
 == Names ===========
